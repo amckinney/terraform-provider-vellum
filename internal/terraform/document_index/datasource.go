@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	vellumclient "terraform-provider-vellum/internal/sdk/client"
+	vellumclient "github.com/vellum-ai/terraform-provider-vellum/internal/vellum/client"
 )
 
 func DataSource() datasource.DataSource {

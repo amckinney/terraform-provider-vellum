@@ -1,12 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
-package provider
+package terraform
 
 import (
 	"context"
 	"os"
-	"terraform-provider-vellum/internal/provider/document_index"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/function"
@@ -14,8 +10,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-
-	vellumclient "terraform-provider-vellum/internal/sdk/client"
+	"github.com/vellum-ai/terraform-provider-vellum/internal/terraform/document_index"
+	vellumclient "github.com/vellum-ai/terraform-provider-vellum/internal/vellum/client"
+	"github.com/vellum-ai/terraform-provider-vellum/internal/vellum/option"
 )
 
 // Ensure VellumProvider satisfies various provider interfaces.
@@ -61,7 +58,7 @@ func (p *VellumProvider) Configure(ctx context.Context, req provider.ConfigureRe
 	}
 
 	client := vellumclient.NewClient(
-		vellumclient.WithApiKey(
+		option.WithApiKey(
 			os.Getenv("VELLUM_API_KEY"),
 		),
 	)

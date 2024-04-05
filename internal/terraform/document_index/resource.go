@@ -13,9 +13,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-
-	vellum "terraform-provider-vellum/internal/sdk"
-	vellumclient "terraform-provider-vellum/internal/sdk/client"
+	"github.com/vellum-ai/terraform-provider-vellum/internal/vellum"
+	vellumclient "github.com/vellum-ai/terraform-provider-vellum/internal/vellum/client"
 )
 
 var _ resource.ResourceWithConfigure = &DocumentIndexResource{}
@@ -199,7 +198,7 @@ func (r *DocumentIndexResource) Update(ctx context.Context, req resource.UpdateR
 		status = &s
 	}
 
-	var environment *vellum.EnvironmentEnum;
+	var environment *vellum.EnvironmentEnum
 	if documentIndexPlan.Environment.ValueString() != "" {
 		env, _ := vellum.NewEnvironmentEnumFromString(documentIndexPlan.Environment.ValueString())
 		environment = &env

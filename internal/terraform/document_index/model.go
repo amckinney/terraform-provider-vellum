@@ -5,8 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-
-	vellum "terraform-provider-vellum/internal/sdk"
+	"github.com/vellum-ai/terraform-provider-vellum/internal/vellum"
 )
 
 func NewVellumDocumentIndexCreateRequest(ctx context.Context, documentIndexModel *TfDocumentIndexResourceModel) (*vellum.DocumentIndexCreateRequest, diag.Diagnostics) {
