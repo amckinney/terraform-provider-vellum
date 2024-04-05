@@ -45,7 +45,7 @@ func main() {
 
 	err := providerserver.Serve(
 		context.Background(),
-		terraform.New(version),
+		terraform.NewProvider(version),
 		opts,
 	)
 

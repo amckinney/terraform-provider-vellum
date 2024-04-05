@@ -2,10 +2,8 @@ package terraform
 
 import (
 	"context"
-	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/function"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -15,29 +13,37 @@ import (
 	"github.com/vellum-ai/terraform-provider-vellum/internal/vellum/option"
 )
 
-// Ensure VellumProvider satisfies various provider interfaces.
-var _ provider.Provider = &VellumProvider{}
-var _ provider.ProviderWithFunctions = &VellumProvider{}
+// Ensure Provider satisfies the terraform provider interface(s).
+var _ provider.Provider = (*Provider)(nil)
 
-// VellumProvider defines the provider implementation.
-type VellumProvider struct {
+// Provider defines the provider implementation.
+type Provider struct {
 	// version is set to the provider version on release, "dev" when the
 	// provider is built and ran locally, and "test" when running acceptance
 	// testing.
 	version string
 }
 
-// VellumProviderModel describes the provider data model.
-type VellumProviderModel struct {
-	APIKey types.String `tfsdk:"api_key"`
+// NewProvider returns a new vellum terraform provider.
+func NewProvider(version string) func() provider.Provider {
+	return func() provider.Provider {
+		return &Provider{
+			version: version,
+		}
+	}
 }
 
-func (p *VellumProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+// Model describes the provider data model.
+type Model struct {
+	ApiKey types.String `tfsdk:"api_key"`
+}
+
+func (p *Provider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
 	resp.TypeName = "vellum"
 	resp.Version = p.version
 }
 
-func (p *VellumProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *Provider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"api_key": schema.StringAttribute{
@@ -48,44 +54,33 @@ func (p *VellumProvider) Schema(ctx context.Context, req provider.SchemaRequest,
 	}
 }
 
-func (p *VellumProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var data VellumProviderModel
+func (p *Provider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	var model Model
 
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.Config.Get(ctx, &model)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
+	// TODO: Add in env var support; send diagnostics if not set.
 	client := vellumclient.NewClient(
 		option.WithApiKey(
-			os.Getenv("VELLUM_API_KEY"),
+			model.ApiKey.String(),
 		),
 	)
 	resp.DataSourceData = client
 	resp.ResourceData = client
 }
 
-func (p *VellumProvider) Resources(ctx context.Context) []func() resource.Resource {
+func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		document_index.Resource,
 	}
 }
 
-func (p *VellumProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		document_index.DataSource,
-	}
-}
-
-func (p *VellumProvider) Functions(ctx context.Context) []func() function.Function {
-	return []func() function.Function{}
-}
-
-func New(version string) func() provider.Provider {
-	return func() provider.Provider {
-		return &VellumProvider{
-			version: version,
-		}
 	}
 }
