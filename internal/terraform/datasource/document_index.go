@@ -13,12 +13,12 @@ import (
 )
 
 type DocumentIndexModel struct {
-	Created     types.String `tfsdk:"created"`
-	Environment types.String `tfsdk:"environment"`
 	Id          types.String `tfsdk:"id"`
-	Label       types.String `tfsdk:"label"`
 	Name        types.String `tfsdk:"name"`
+	Label       types.String `tfsdk:"label"`
+	Environment types.String `tfsdk:"environment"`
 	Status      types.String `tfsdk:"status"`
+	Created     types.String `tfsdk:"created"`
 }
 
 type DocumentIndex struct {
