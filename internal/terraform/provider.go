@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"context"
+	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -33,8 +34,8 @@ func NewProvider(version string) func() provider.Provider {
 	}
 }
 
-// Model describes the provider data model.
-type Model struct {
+// ProviderModel describes the provider data model.
+type ProviderModel struct {
 	ApiKey types.String `tfsdk:"api_key"`
 }
 
@@ -55,18 +56,30 @@ func (p *Provider) Schema(ctx context.Context, req provider.SchemaRequest, resp 
 }
 
 func (p *Provider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var model Model
+	var model ProviderModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &model)...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// TODO: Add in env var support; send diagnostics if not set.
+	apiKey := os.Getenv("VELLUM_API_KEY")
+	if !model.ApiKey.IsNull() {
+		apiKey = model.ApiKey.String()
+	}
+
+	if apiKey == "" {
+		// TODO: Is this error message idiomatic?
+		resp.Diagnostics.AddError(
+			"an API key is required to use the vellum provider",
+			"you must set a VELLUM_API_KEY or specify an api_key in the provider constructor",
+		)
+		return
+	}
+
 	client := vellumclient.NewClient(
 		option.WithApiKey(
-			model.ApiKey.String(),
+			apiKey,
 		),
 	)
 	resp.DataSourceData = client
