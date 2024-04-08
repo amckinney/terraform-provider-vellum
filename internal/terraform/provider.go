@@ -69,10 +69,9 @@ func (p *Provider) Configure(ctx context.Context, req provider.ConfigureRequest,
 	}
 
 	if apiKey == "" {
-		// TODO: Is this error message idiomatic?
 		resp.Diagnostics.AddError(
-			"an API key is required to use the vellum provider",
-			"you must set a VELLUM_API_KEY or specify an api_key in the provider constructor",
+			"An API key is required to use the vellum provider",
+			"You must set a VELLUM_API_KEY or specify an api_key in the provider constructor",
 		)
 		return
 	}
