@@ -9,7 +9,6 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-
 	"github.com/vellum-ai/terraform-provider-vellum/internal/terraform"
 )
 
