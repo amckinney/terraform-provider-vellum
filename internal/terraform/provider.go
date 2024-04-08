@@ -5,11 +5,13 @@ import (
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/vellum-ai/terraform-provider-vellum/internal/terraform/document_index"
+	vellumdatasource "github.com/vellum-ai/terraform-provider-vellum/internal/terraform/datasource"
+	vellumresource "github.com/vellum-ai/terraform-provider-vellum/internal/terraform/resource"
 	vellumclient "github.com/vellum-ai/terraform-provider-vellum/internal/vellum/client"
 	"github.com/vellum-ai/terraform-provider-vellum/internal/vellum/option"
 )
@@ -65,11 +67,12 @@ func (p *Provider) Configure(ctx context.Context, req provider.ConfigureRequest,
 
 	apiKey := os.Getenv("VELLUM_API_KEY")
 	if !model.ApiKey.IsNull() {
-		apiKey = model.ApiKey.String()
+		apiKey = model.ApiKey.ValueString()
 	}
 
 	if apiKey == "" {
-		resp.Diagnostics.AddError(
+		resp.Diagnostics.AddAttributeError(
+			path.Root("api_key"),
 			"An API key is required to use the vellum provider",
 			"You must set a VELLUM_API_KEY or specify an api_key in the provider constructor",
 		)
@@ -87,12 +90,12 @@ func (p *Provider) Configure(ctx context.Context, req provider.ConfigureRequest,
 
 func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		document_index.Resource,
+		vellumresource.NewDocumentIndex,
 	}
 }
 
 func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		document_index.DataSource,
+		vellumdatasource.NewDocumentIndex,
 	}
 }

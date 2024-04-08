@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -27,7 +26,6 @@ type DocumentIndex struct {
 }
 
 var _ resource.ResourceWithConfigure = (*DocumentIndex)(nil)
-var _ resource.ResourceWithImportState = (*DocumentIndex)(nil)
 
 func NewDocumentIndex() resource.Resource {
 	return &DocumentIndex{}
@@ -43,17 +41,17 @@ func (d *DocumentIndex) Schema(ctx context.Context, req resource.SchemaRequest, 
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Computed:            true, // TODO: It looks like the 'name' is meant to be the primary thing?
+				Computed:            true,
 				Description:         "The Document Index's ID",
 				MarkdownDescription: "The Document Index's ID",
 			},
 			"name": schema.StringAttribute{
-				Required:            true, // TODO: Should this be optional?
+				Required:            true,
 				Description:         "A name that uniquely identifies this index within its workspace",
 				MarkdownDescription: "A name that uniquely identifies this index within its workspace",
 			},
 			"label": schema.StringAttribute{
-				Required:            true, // TODO: Should this be optional?
+				Required:            true,
 				Description:         "A human-readable label for the document index",
 				MarkdownDescription: "A human-readable label for the document index",
 			},
@@ -90,7 +88,7 @@ func (d *DocumentIndex) Configure(ctx context.Context, req resource.ConfigureReq
 		return
 	}
 
-	r.client = client
+	d.client = client
 }
 
 func (d *DocumentIndex) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -128,106 +126,95 @@ func (d *DocumentIndex) Create(ctx context.Context, req resource.CreateRequest, 
 			d.createResponseToModel(response),
 		)...,
 	)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (d *DocumentIndex) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var documentIndexState TfDocumentIndexModel
-	var err error
-	resp.Diagnostics.Append(req.State.Get(ctx, &documentIndexState)...)
+	var model *DocumentIndexModel
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &model)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	documentIndex, err := d.client.DocumentIndexes.Retrieve(ctx, documentIndexState.Id.ValueString())
+	response, err := d.client.DocumentIndexes.Retrieve(
+		ctx,
+		d.modelToRetrieveRequest(model),
+	)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read document index, got error: %s", err))
+		resp.Diagnostics.AddError(
+			"Read document index error",
+			fmt.Sprintf("Unable to read document index, got error: %s", err),
+		)
 		return
 	}
 
-	documentIndexModel, diagnostic := NewTfDocumentIndexModel(ctx, &documentIndexState, documentIndex)
-	resp.Diagnostics.Append(diagnostic...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &documentIndexModel)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
+	resp.Diagnostics.Append(
+		resp.State.Set(
+			ctx,
+			d.retrieveResponseToModel(response),
+		)...,
+	)
 }
 
 func (d *DocumentIndex) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var documentIndexPlan *TfDocumentIndexModel
-	var documentIndexState *TfDocumentIndexModel
+	var model *DocumentIndexModel
 
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &documentIndexPlan)...)
-	resp.Diagnostics.Append(req.State.Get(ctx, &documentIndexState)...)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &model)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	id := documentIndexState.Id.ValueString()
-	label := documentIndexPlan.Label.ValueString()
-
-	var status *vellum.EntityStatus
-	if documentIndexPlan.Status.ValueString() != "" {
-		s, _ := vellum.NewEntityStatusFromString(documentIndexPlan.Status.ValueString())
-		status = &s
-	}
-
-	var environment *vellum.EnvironmentEnum
-	if documentIndexPlan.Environment.ValueString() != "" {
-		env, _ := vellum.NewEnvironmentEnumFromString(documentIndexPlan.Environment.ValueString())
-		environment = &env
-	}
-
-	documentIndex, err := d.client.DocumentIndexes.PartialUpdate(ctx,
-		id,
-		&vellum.PatchedDocumentIndexUpdateRequest{
-			Label:       &label,
-			Status:      status,
-			Environment: environment,
-		})
-
+	request, err := d.modelToPartialUpdateRequest(model)
 	if err != nil {
-		resp.Diagnostics.AddError("error during document index update", err.Error())
+		resp.Diagnostics.AddError(
+			"Update document index error",
+			fmt.Sprintf("Unable to create document index request: %v", err),
+		)
 		return
 	}
 
-	documentIndexModel, diagnostic := NewTfDocumentIndexModel(ctx, documentIndexPlan, documentIndex)
-	resp.Diagnostics.Append(diagnostic...)
-	if resp.Diagnostics.HasError() {
+	response, err := d.client.DocumentIndexes.PartialUpdate(ctx,
+		model.Id.ValueString(),
+		request,
+	)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Update document index error",
+			fmt.Sprintf("Unable to update document index, got error: %s", err),
+		)
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &documentIndexModel)...)
+	resp.Diagnostics.Append(
+		resp.State.Set(
+			ctx,
+			d.updateResponseToModel(response),
+		)...,
+	)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 }
 
 func (d *DocumentIndex) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var documentIndexState *TfDocumentIndexModel
+	var model *DocumentIndexModel
 
-	resp.Diagnostics.Append(req.State.Get(ctx, &documentIndexState)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &model)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	err := d.client.DocumentIndexes.Destroy(
 		ctx,
-		documentIndexState.Id.ValueString())
+		d.modelToDestroyRequest(model),
+	)
 	if err != nil {
-		resp.Diagnostics.AddError("error when destroying the document index resource", err.Error())
+		resp.Diagnostics.AddError(
+			"Delete document index error",
+			fmt.Sprintf("Unable to delete document index, got error: %s", err),
+		)
 		return
 	}
-}
-
-func (d *DocumentIndex) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func (d *DocumentIndex) modelToCreateRequest(model *DocumentIndexModel) (*vellum.DocumentIndexCreateRequest, error) {
@@ -257,7 +244,63 @@ func (d *DocumentIndex) modelToCreateRequest(model *DocumentIndexModel) (*vellum
 	}, nil
 }
 
+func (d *DocumentIndex) modelToRetrieveRequest(model *DocumentIndexModel) string {
+	return model.Id.ValueString()
+}
+
+func (d *DocumentIndex) modelToPartialUpdateRequest(model *DocumentIndexModel) (*vellum.PatchedDocumentIndexUpdateRequest, error) {
+	var status *vellum.EntityStatus
+	if !model.Status.IsNull() {
+		value, err := vellum.NewEntityStatusFromString(model.Status.ValueString())
+		if err != nil {
+			return nil, err
+		}
+		status = value.Ptr()
+	}
+
+	var environment *vellum.EnvironmentEnum
+	if !model.Environment.IsNull() {
+		value, err := vellum.NewEnvironmentEnumFromString(model.Environment.ValueString())
+		if err != nil {
+			return nil, err
+		}
+		environment = value.Ptr()
+	}
+
+	return &vellum.PatchedDocumentIndexUpdateRequest{
+		Label:       model.Label.ValueStringPointer(),
+		Status:      status,
+		Environment: environment,
+	}, nil
+}
+
+func (d *DocumentIndex) modelToDestroyRequest(model *DocumentIndexModel) string {
+	return model.Id.ValueString()
+}
+
 func (d *DocumentIndex) createResponseToModel(response *vellum.DocumentIndexRead) *DocumentIndexModel {
+	return &DocumentIndexModel{
+		Id:          types.StringValue(response.Id),
+		Name:        types.StringValue(response.Name),
+		Created:     types.StringValue(response.Created.Format(time.RFC3339)),
+		Environment: types.StringValue(string(*response.Environment)),
+		Label:       types.StringValue(response.Label),
+		Status:      types.StringValue(string(*response.Status)),
+	}
+}
+
+func (d *DocumentIndex) retrieveResponseToModel(response *vellum.DocumentIndexRead) *DocumentIndexModel {
+	return &DocumentIndexModel{
+		Id:          types.StringValue(response.Id),
+		Name:        types.StringValue(response.Name),
+		Created:     types.StringValue(response.Created.Format(time.RFC3339)),
+		Environment: types.StringValue(string(*response.Environment)),
+		Label:       types.StringValue(response.Label),
+		Status:      types.StringValue(string(*response.Status)),
+	}
+}
+
+func (d *DocumentIndex) updateResponseToModel(response *vellum.DocumentIndexRead) *DocumentIndexModel {
 	return &DocumentIndexModel{
 		Id:          types.StringValue(response.Id),
 		Name:        types.StringValue(response.Name),

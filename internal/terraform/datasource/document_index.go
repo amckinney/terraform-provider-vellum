@@ -42,12 +42,12 @@ func (d *DocumentIndex) Schema(ctx context.Context, req datasource.SchemaRequest
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Required:            true,
+				Computed:            true,
 				Description:         "The Document Index's ID",
 				MarkdownDescription: "The Document Index's ID",
 			},
 			"name": schema.StringAttribute{
-				Computed:            true,
+				Required:            true,
 				Description:         "A name that uniquely identifies this index within its workspace",
 				MarkdownDescription: "A name that uniquely identifies this index within its workspace",
 			},
@@ -119,15 +119,15 @@ func (d *DocumentIndex) Read(ctx context.Context, req datasource.ReadRequest, re
 }
 
 func (d *DocumentIndex) modelToRetrieveRequest(model *DocumentIndexModel) string {
-	// Unlike the original solution, this approach _requires_ the ID to be set.
+	// Unlike the original solution, this approach _requires_ the name to be set.
 	//
 	// From the perspective of the Terraform provider, we should only expose a single
-	// parameter to be set (i.e. 'id'), and set the 'name' as 'Computed'.
+	// parameter to be set (i.e. 'name'), and set the 'id' as 'Computed'.
 	//
 	// By setting the parameter as 'Required', we get better error handling and a
 	// simpler (yet more restrictive) user experience. Plus, the user is actually
 	// free to set either ID or name in the terraform data source.
-	return model.Id.ValueString()
+	return model.Name.ValueString()
 }
 
 func (d *DocumentIndex) retrieveResponseToModel(response *vellum.DocumentIndexRead) *DocumentIndexModel {
