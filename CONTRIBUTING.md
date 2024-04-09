@@ -68,7 +68,7 @@ We can refactor the terraform provider to support additional data source paramet
 
 Whenever we need to make an override, it's best to start with the genearted code as a base, then add and/or remove
 only the pieces that we're concerned with. In this case, we're going to make a schema change to adapt how we
-read the data source, so we will only need to copy the `Schemas` and `Read` methods shown below (notice the
+read the data source, so we will only need to understand the `Schemas` and `Read` methods shown below (notice the
 `name` property is marked as _required_):
 
 ```go
@@ -124,47 +124,14 @@ func (d *DocumentIndex) Read(ctx context.Context, req datasource.ReadRequest, re
 }
 ```
 
-#### 2. Copy the methods
+#### 2. Refactor the methods
 
-We can start to override the behavior of the data source by simply copying the method implementations at
-the top-level document index data source defined in `internal/terraform/datasource/document_index.go` like
-so:
+Now we can actually refactor the implementation so that we support reading both the ID and name properties.
+To do so, we'll need to make these properties _optional_, then interact with both properties before we call
+Vellum's `client.DocumentIndexes.Retrieve` endpoint.
 
-```go
-package datasource
-
-import (
-	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	basedatasource "github.com/vellum-ai/terraform-provider-vellum/internal/terraform/base/datasource"
-)
-
-type DocumentIndex struct {
-	*basedatasource.DocumentIndex
-}
-
-var _ datasource.DataSource = (*DocumentIndex)(nil)
-
-func NewDocumentIndex() datasource.DataSource {
-	return &DocumentIndex{
-		DocumentIndex: basedatasource.NewDocumentIndex().(*basedatasource.DocumentIndex),
-	}
-}
-
-func (d *DocumentIndex) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-  ...
-}
-
-func (d *DocumentIndex) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-  ...
-}
-```
-
-#### 3. Refactor the methods
-
-With the changes we've made thus far, the behavior of the provider will be unchanged. Now we can actually
-refactor the implementation so that we support reading both the ID and name properties. To do so, we'll need
-to make these properties _optional_, then interact with both properties before we call the retrieve endpoint.
-This is shown below:
+We could re-implement the entire method from scratch, or use the base implementation as much as we can to
+reduce code duplication. Both approaches are shown below:
 
 ```go
 package datasource
@@ -187,23 +154,23 @@ func NewDocumentIndex() datasource.DataSource {
 }
 
 func (d *DocumentIndex) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	resp.Schema = schema.Schema{
-    ...
-		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Computed:            true,
-				Optional:            true,
-				Description:         "The Document Index's ID",
-				MarkdownDescription: "The Document Index's ID",
-			},
-			"name": schema.StringAttribute{
-				Computed:            true,
-				Optional:            true,
-				Description:         "A name that uniquely identifies this index within its workspace",
-				MarkdownDescription: "A name that uniquely identifies this index within its workspace",
-			},
-      ...
-		},
+	// Apply the schema defined by the generated base.
+	d.base.Schema(ctx, req, resp)
+
+	// Override the 'id' attribute and make it optional.
+	resp.Schema.Attributes["id"] = schema.StringAttribute{
+		Computed:            true,
+		Optional:            true,
+		Description:         "The Document Index's ID",
+		MarkdownDescription: "The Document Index's ID",
+	}
+
+	// Override the 'name' attribute and make it optional.
+	resp.Schema.Attributes["name"] = schema.StringAttribute{
+		Computed:            true,
+		Optional:            true,
+		Description:         "A name that uniquely identifies this index within its workspace",
+		MarkdownDescription: "A name that uniquely identifies this index within its workspace",
 	}
 }
 
@@ -215,14 +182,25 @@ func (d *DocumentIndex) Read(ctx context.Context, req datasource.ReadRequest, re
 		return
 	}
 
+	// Add validation to prevent both fields from being set.
   	if !model.Id.IsNull() && !model.Name.IsNull() {
 		resp.Diagnostics.AddError(
-			"Cannot read document index data source without a unique identifier",
-			"An id or name is required to read a document index data source",
+			"Cannot read document index data source with multiple unique identifiers",
+			"Either an 'id' or 'name' is required to read a document index data source, but both were set",
 		)
 		return
   	}
 
+	// Add validation to guarantee at least one ID was set.
+	if model.Id.IsNull() && model.Name.IsNull() {
+		resp.Diagnostics.AddError(
+			"Cannot read document index data source without a unique identifier",
+			"Either an 'id' or 'name' is required to read a document index data source",
+		)
+		return
+  	}
+
+	// Resolve the ID from either the 'name' or the 'id'.
   	retrieveID := model.Name.ValueString()
   	if retrieveID == "" {
   		retrieveID = model.Id.ValueString()
