@@ -10,7 +10,7 @@ var _ provider.Provider = (*Provider)(nil)
 
 // Provider defines the provider implementation.
 type Provider struct {
-	provider.Provider
+	*base.Provider
 
 	// version is set to the provider version on release, "dev" when the
 	// provider is built and ran locally, and "test" when running acceptance
@@ -22,7 +22,7 @@ type Provider struct {
 func NewProvider(version string) func() provider.Provider {
 	return func() provider.Provider {
 		return &Provider{
-			Provider: base.NewProvider(version),
+			Provider: base.NewProvider(version).(*base.Provider),
 			version:  version,
 		}
 	}

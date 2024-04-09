@@ -6,13 +6,13 @@ import (
 )
 
 type DocumentIndex struct {
-	resource.Resource
+	*baseresource.DocumentIndex
 }
 
 var _ resource.Resource = (*DocumentIndex)(nil)
 
 func NewDocumentIndex() resource.Resource {
 	return &DocumentIndex{
-		Resource: baseresource.NewDocumentIndex(),
+		DocumentIndex: baseresource.NewDocumentIndex().(*baseresource.DocumentIndex),
 	}
 }

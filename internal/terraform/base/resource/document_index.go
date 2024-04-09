@@ -22,7 +22,7 @@ type DocumentIndexModel struct {
 }
 
 type DocumentIndex struct {
-	client *vellumclient.Client
+	Vellum *vellumclient.Client
 }
 
 var _ resource.ResourceWithConfigure = (*DocumentIndex)(nil)
@@ -88,7 +88,7 @@ func (d *DocumentIndex) Configure(ctx context.Context, req resource.ConfigureReq
 		return
 	}
 
-	d.client = client
+	d.Vellum = client
 }
 
 func (d *DocumentIndex) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -108,7 +108,7 @@ func (d *DocumentIndex) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 
-	response, err := d.client.DocumentIndexes.Create(
+	response, err := d.Vellum.DocumentIndexes.Create(
 		ctx,
 		request,
 	)
@@ -136,7 +136,7 @@ func (d *DocumentIndex) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
-	response, err := d.client.DocumentIndexes.Retrieve(
+	response, err := d.Vellum.DocumentIndexes.Retrieve(
 		ctx,
 		d.modelToRetrieveRequest(model),
 	)
@@ -173,7 +173,7 @@ func (d *DocumentIndex) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
-	response, err := d.client.DocumentIndexes.PartialUpdate(ctx,
+	response, err := d.Vellum.DocumentIndexes.PartialUpdate(ctx,
 		model.Id.ValueString(),
 		request,
 	)
@@ -204,7 +204,7 @@ func (d *DocumentIndex) Delete(ctx context.Context, req resource.DeleteRequest, 
 		return
 	}
 
-	err := d.client.DocumentIndexes.Destroy(
+	err := d.Vellum.DocumentIndexes.Destroy(
 		ctx,
 		d.modelToDestroyRequest(model),
 	)

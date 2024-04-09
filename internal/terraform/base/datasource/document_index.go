@@ -22,7 +22,7 @@ type DocumentIndexModel struct {
 }
 
 type DocumentIndex struct {
-	client *vellumclient.Client
+	Vellum *vellumclient.Client
 }
 
 var _ datasource.DataSource = (*DocumentIndex)(nil)
@@ -86,7 +86,7 @@ func (d *DocumentIndex) Configure(ctx context.Context, req datasource.ConfigureR
 		return
 	}
 
-	d.client = client
+	d.Vellum = client
 }
 
 func (d *DocumentIndex) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -97,7 +97,7 @@ func (d *DocumentIndex) Read(ctx context.Context, req datasource.ReadRequest, re
 		return
 	}
 
-	response, err := d.client.DocumentIndexes.Retrieve(
+	response, err := d.Vellum.DocumentIndexes.Retrieve(
 		ctx,
 		d.modelToRetrieveRequest(model),
 	)
