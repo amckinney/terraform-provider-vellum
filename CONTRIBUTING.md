@@ -35,16 +35,16 @@ simply edit the types deposited as the root of the `internal/terraform` package,
 - `internal/terraform/datasource/...`
 - `internal/terraform/resource/...`
 
-None of the files generated in the `internal/terraform/base/...` directory are expected to be edited.
+Note that _none_ of the files generated in the `internal/terraform/base/...` directory are expected to be edited.
 
 ### Adding an override
 
-Suppose that we need to edit the property used to retrieve a data source. By default, the terraform
-provider will use the resource's primary key to retrieve the resource, but data source might support
-multiple ways to be resolved, such as by their unique ID or label.
+Suppose that we need to edit the property used to retrieve a data source. By default, the terraform provider will
+use the resource's primary key to retrieve the data source, but the data source might support multiple ways to be
+resolved, such as by their unique ID or name.
 
 For example, consider the `DocumentIndex` data source defined in the `internal/terraform/base/datasource/document_index.go` file.
-Given that the `name` property is required, this data source is expressed in Terraform with the following configuration:
+The `name` property is required, so the data source is expressed in Terraform with the following configuration:
 
 ```terraform
 terraform {
@@ -66,10 +66,10 @@ We can refactor the terraform provider to support additional data source paramet
 
 #### 1. Inspect the base data source
 
-Whenever we need to make an override, it's best to start with the base genearted code, then add and/or remove
+Whenever we need to make an override, it's best to start with the genearted code as a base, then add and/or remove
 only the pieces that we're concerned with. In this case, we're going to make a schema change to adapt how we
 read the data source, so we will only need to copy the `Schemas` and `Read` methods shown below (notice the
-`name` property is _required_):
+`name` property is marked as _required_):
 
 ```go
 type DocumentIndex struct {
@@ -105,7 +105,7 @@ func (d *DocumentIndex) Read(ctx context.Context, req datasource.ReadRequest, re
 
 	response, err := d.Vellum.DocumentIndexes.Retrieve(
 		ctx,
-    model.Name.ValueString(),
+    	model.Name.ValueString(),
 	)
 	if err != nil {
 		resp.Diagnostics.AddError("error getting document index information", err.Error())
@@ -126,7 +126,7 @@ func (d *DocumentIndex) Read(ctx context.Context, req datasource.ReadRequest, re
 
 #### 2. Copy the methods
 
-We can start to override the behavior of this resource by simply copying the method implementations at
+We can start to override the behavior of the data source by simply copying the method implementations at
 the top-level document index data source defined in `internal/terraform/datasource/document_index.go` like
 so:
 
@@ -215,22 +215,22 @@ func (d *DocumentIndex) Read(ctx context.Context, req datasource.ReadRequest, re
 		return
 	}
 
-  if !model.Id.IsNull() && !model.Name.IsNull() {
+  	if !model.Id.IsNull() && !model.Name.IsNull() {
 		resp.Diagnostics.AddError(
 			"Cannot read document index data source without a unique identifier",
 			"An id or name is required to read a document index data source",
 		)
 		return
-  }
+  	}
 
-  retrieveID := model.Name.ValueString()
-  if retrieveID == "" {
-    retrieveID = model.Id.ValueString()
-  }
+  	retrieveID := model.Name.ValueString()
+  	if retrieveID == "" {
+  		retrieveID = model.Id.ValueString()
+  	}
 
 	response, err := d.Vellum.DocumentIndexes.Retrieve(
 		ctx,
-    retrieveID,
+    	retrieveID,
 	)
 
   ...
