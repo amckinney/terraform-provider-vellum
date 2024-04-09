@@ -2,9 +2,9 @@
 
 ## Package Structure
 
-The generated SDK is deposited in the `internal/vellum` package, whereas the Terraform-specific
-code is generated in the `internal/terraform` package. The main files you will be interacting with
-and/or reading are shown below:
+The generated SDK is deposited in the `internal/vellum` package, whereas the Terraform-specific code is
+generated in the `internal/terraform` package. The main files you will be interacting with and/or reading
+are shown below:
 
 ```sh
 .
@@ -39,7 +39,7 @@ Note that _none_ of the files generated in the `internal/terraform/base/...` dir
 
 ### Adding an override
 
-Suppose that we need to edit the property used to retrieve a data source. By default, the terraform provider will
+Suppose that we want to edit the property used to retrieve a data source. By default, the terraform provider will
 use the resource's primary key to retrieve the data source, but the data source might support multiple ways to be
 resolved, such as by their unique ID or name.
 
@@ -126,9 +126,9 @@ func (d *DocumentIndex) Read(ctx context.Context, req datasource.ReadRequest, re
 
 #### 2. Refactor the methods
 
-Now we can actually refactor the implementation so that we support reading both the ID and name properties.
-To do so, we'll need to make these properties _optional_, then interact with both properties before we call
-Vellum's `client.DocumentIndexes.Retrieve` endpoint.
+Now we can actually refactor the top-level implementation defined in `internal/terraform/datasource/document_index.go`,
+so that we support reading both the ID and name properties. To do so, we'll need to make these properties _optional_,
+then interact with both properties before we call Vellum's `client.DocumentIndexes.Retrieve` endpoint.
 
 We could re-implement the entire method from scratch, or use the base implementation as much as we can to
 reduce code duplication. Both approaches are shown below:
@@ -206,12 +206,12 @@ func (d *DocumentIndex) Read(ctx context.Context, req datasource.ReadRequest, re
   		retrieveID = model.Id.ValueString()
   	}
 
-	response, err := d.Vellum.DocumentIndexes.Retrieve(
+	response, err := d.base.Vellum.DocumentIndexes.Retrieve(
 		ctx,
     	retrieveID,
 	)
 
-  ...
+	...
 }
 ```
 
