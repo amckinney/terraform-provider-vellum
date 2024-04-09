@@ -112,9 +112,6 @@ func (d *DocumentIndex) Read(ctx context.Context, req datasource.ReadRequest, re
 			d.retrieveResponseToModel(response),
 		)...,
 	)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (d *DocumentIndex) modelToRetrieveRequest(model *DocumentIndexModel) string {
