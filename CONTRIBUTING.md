@@ -1,7 +1,8 @@
 # Terraform Provider
 
 - Other names for `base`?
-- Add package documentation
+- Add package documentation.
+- Move everything into separate packages (e.g. )
 
 ## Package Structure
 
@@ -13,17 +14,15 @@ are shown below:
 .
 ├── internal
 │   ├── terraform
-│   │   ├── base
-│   │   │   ├── datasource
-│   │   │   │   └── ...
-│   │   │   ├── provider.go
-│   │   │   └── resource
-│   │   │       └── ...
-│   │   ├── datasource
-│   │   │   └── ...
-│   │   ├── provider.go
-│   │   └── resource
-│   │       └── ...
+│   │   ├── documentindex
+│   │   │   ├── data_source_hooks.go
+│   │   │   ├── data_source.go
+│   │   │   ├── doc.go
+│   │   │   ├── resource_hooks.go
+│   │   │   └── resource.go
+│   │   ├── doc.go
+│   │   ├── hooks.go
+│   │   └── provider.go
 │   └── vellum
 │       └── ...
 └── main.go
@@ -32,13 +31,13 @@ are shown below:
 ## Overrides
 
 The package structure is setup so that it's easy to extend the behavior of the generated code. Maintainers can
-simply edit the types deposited as the root of the `internal/terraform` package, which includes the following:
+simply edit any of the files that end in `hooks.go`, such as the following:
 
-- `internal/terraform/provider.go`
-- `internal/terraform/datasource/...`
-- `internal/terraform/resource/...`
+- `internal/terraform/documentindex/data_source_hooks.go`
+- `internal/terraform/documentindex/resource_hooks.go`
+- `internal/terraform/hooks.go`
 
-Note that _none_ of the files generated in the `internal/terraform/base/...` directory are expected to be edited.
+Note that _none_ of the other files are expected to be edited.
 
 ### Adding an override
 
@@ -46,7 +45,7 @@ Suppose that we want to edit the property used to retrieve a data source. By def
 use the resource's primary key to retrieve the data source, but the data source might support multiple ways to be
 resolved, such as by their unique ID or name.
 
-For example, consider the `DocumentIndex` data source defined in the `internal/terraform/base/datasource/document_index.go` file.
+For example, consider the `DocumentIndex` data source defined in the `internal/terraform/documentindex/data_source.go` file.
 The `name` property is required, so the data source is expressed in Terraform with the following configuration:
 
 ```terraform
@@ -65,7 +64,7 @@ data "vellum_document_index" "reference" {
 }
 ```
 
-We can refactor the terraform provider to support additional data source parameters in a few simple steps.
+We can refactor the terraform provider to support additional data source parameters in a couple simple steps.
 
 #### 1. Inspect the base data source
 
@@ -75,11 +74,11 @@ read the data source, so we will only need to understand the `Schemas` and `Read
 `name` property is marked as _required_):
 
 ```go
-type DocumentIndex struct {
+type baseDataSource struct {
 	Vellum *vellumclient.Client
 }
 
-func (d *DocumentIndex) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (b *baseDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
     ...
 		Attributes: map[string]schema.Attribute{
@@ -98,7 +97,7 @@ func (d *DocumentIndex) Schema(ctx context.Context, req datasource.SchemaRequest
 	}
 }
 
-func (d *DocumentIndex) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (b *baseDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var model *DocumentIndexModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &model)...)
@@ -106,7 +105,7 @@ func (d *DocumentIndex) Read(ctx context.Context, req datasource.ReadRequest, re
 		return
 	}
 
-	response, err := d.Vellum.DocumentIndexes.Retrieve(
+	response, err := b.Vellum.DocumentIndexes.Retrieve(
 		ctx,
     	model.Name.ValueString(),
 	)
@@ -118,7 +117,7 @@ func (d *DocumentIndex) Read(ctx context.Context, req datasource.ReadRequest, re
 	resp.Diagnostics.Append(
 		resp.State.Set(
 			ctx,
-			d.retrieveResponseToModel(response),
+			b.retrieveResponseToModel(response),
 		)...,
 	)
 	if resp.Diagnostics.HasError() {
@@ -129,7 +128,7 @@ func (d *DocumentIndex) Read(ctx context.Context, req datasource.ReadRequest, re
 
 #### 2. Refactor the methods
 
-Now we can actually refactor the top-level implementation defined in `internal/terraform/datasource/document_index.go`,
+Now we can actually refactor the top-level implementation defined in `internal/terraform/documentindex/data_source_hooks.go`,
 so that we support reading both the ID and name properties. To do so, we'll need to make these properties _optional_,
 then interact with both properties before we call Vellum's `client.DocumentIndexes.Retrieve` endpoint.
 
@@ -137,26 +136,7 @@ We could re-implement the entire method from scratch, or use the base implementa
 reduce code duplication. Both approaches are shown below:
 
 ```go
-package datasource
-
-import (
-	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	basedatasource "github.com/vellum-ai/terraform-provider-vellum/internal/terraform/base/datasource"
-)
-
-type DocumentIndex struct {
-	*basedatasource.DocumentIndex
-}
-
-var _ datasource.DataSource = (*DocumentIndex)(nil)
-
-func NewDocumentIndex() datasource.DataSource {
-	return &DocumentIndex{
-		DocumentIndex: basedatasource.NewDocumentIndex().(*basedatasource.DocumentIndex),
-	}
-}
-
-func (d *DocumentIndex) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *DataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	// Apply the schema defined by the generated base.
 	d.base.Schema(ctx, req, resp)
 
@@ -177,7 +157,7 @@ func (d *DocumentIndex) Schema(ctx context.Context, req datasource.SchemaRequest
 	}
 }
 
-func (d *DocumentIndex) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var model *basedatasource.DocumentIndexModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &model)...)
