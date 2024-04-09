@@ -80,7 +80,7 @@ type baseDataSource struct {
 
 func (b *baseDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-    ...
+		...
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:            true,
@@ -92,8 +92,9 @@ func (b *baseDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 				Description:         "A name that uniquely identifies this index within its workspace",
 				MarkdownDescription: "A name that uniquely identifies this index within its workspace",
 			},
-      ...
+			...
 		},
+		...
 	}
 }
 
@@ -107,7 +108,7 @@ func (b *baseDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 
 	response, err := b.Vellum.DocumentIndexes.Retrieve(
 		ctx,
-    	model.Name.ValueString(),
+		model.Name.ValueString(),
 	)
 	if err != nil {
 		resp.Diagnostics.AddError("error getting document index information", err.Error())
@@ -191,7 +192,7 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 
 	response, err := d.base.Vellum.DocumentIndexes.Retrieve(
 		ctx,
-    	retrieveID,
+		retrieveID,
 	)
 
 	...
