@@ -32,6 +32,8 @@ func NewProvider(version string) func() provider.Provider {
 	}
 }
 
+// ---
+
 func (p *Provider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
 	p.base.Metadata(ctx, req, resp)
 }
