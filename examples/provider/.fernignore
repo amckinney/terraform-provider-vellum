@@ -1,0 +1,5 @@
+# Support either 'id' or 'name' for document index data source.
+internal/vellum/datasource/document_index.go
+
+# Support a default indexing config for creating document index resources.
+internal/vellum/resource/document_index.go
