@@ -8,17 +8,7 @@ import (
 	"github.com/vellum-ai/terraform-provider-vellum/internal/vellum"
 )
 
-type Resource struct {
-	base *baseResource
-}
-
-var _ resource.Resource = (*Resource)(nil)
-
-func NewResource() resource.Resource {
-	return &Resource{
-		base: newBaseResource(),
-	}
-}
+// --- Override the following methods to customize the resource ---
 
 func (d *Resource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	d.base.Metadata(ctx, req, resp)

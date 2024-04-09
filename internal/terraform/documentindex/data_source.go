@@ -12,6 +12,12 @@ import (
 	vellumclient "github.com/vellum-ai/terraform-provider-vellum/internal/vellum/client"
 )
 
+// DataSourceModel represents the document index data source model.
+// This is expressed in terraform with the following:
+//
+//	data "vellum_document_index" "reference" {
+//	  name = "reference"
+//	}
 type DataSourceModel struct {
 	Id          types.String `tfsdk:"id"`
 	Name        types.String `tfsdk:"name"`
@@ -21,6 +27,27 @@ type DataSourceModel struct {
 	Created     types.String `tfsdk:"created"`
 }
 
+// DataSource represents the document index data source. This type is extendable;
+// simply override any of the exported methods in the data_source_hooks.go file
+// to customize the data source.
+type DataSource struct {
+	base *baseDataSource
+}
+
+// Compile-time assertion that ensures the provider satisfies the datasource.DataSource
+// interface.
+var _ datasource.DataSource = (*DataSource)(nil)
+
+// NewDataSource returns a new document index data source.
+func NewDataSource() datasource.DataSource {
+	return &DataSource{
+		base: newBaseDataSource(),
+	}
+}
+
+// baseDataSource implements the base functionality of the data source.
+//
+// Do NOT edit this type directly; use data_source_hooks.go instead.
 type baseDataSource struct {
 	Vellum *vellumclient.Client
 }

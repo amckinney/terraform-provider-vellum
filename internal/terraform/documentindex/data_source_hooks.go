@@ -8,18 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 )
 
-// Consider adding documentation here.
-type DataSource struct {
-	base *baseDataSource
-}
-
-var _ datasource.DataSource = (*DataSource)(nil)
-
-func NewDataSource() datasource.DataSource {
-	return &DataSource{
-		base: newBaseDataSource(),
-	}
-}
+// --- Override the following methods to customize the data source ---
 
 func (d *DataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	d.base.Metadata(ctx, req, resp)

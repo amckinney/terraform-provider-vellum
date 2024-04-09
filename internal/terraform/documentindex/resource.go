@@ -12,6 +12,13 @@ import (
 	vellumclient "github.com/vellum-ai/terraform-provider-vellum/internal/vellum/client"
 )
 
+// ResourceModel represents the document index resource model.
+// This is expressed in terraform with the following:
+//
+//	resource "vellum_document_index" "managed" {
+//	  label = "Managed Index"
+//	  name  = "managed-index"
+//	}
 type ResourceModel struct {
 	Id          types.String `tfsdk:"id"`
 	Name        types.String `tfsdk:"name"`
@@ -21,6 +28,27 @@ type ResourceModel struct {
 	Created     types.String `tfsdk:"created"`
 }
 
+// Resource represents the document index resource. This type is extendable;
+// simply override any of the exported methods in the resource_hooks.go file
+// to customize the resource.
+type Resource struct {
+	base *baseResource
+}
+
+// Compile-time assertion that ensures the provider satisfies the resource.Resource
+// interface.
+var _ resource.Resource = (*Resource)(nil)
+
+// NewResource returns a new document index resource.
+func NewResource() resource.Resource {
+	return &Resource{
+		base: newBaseResource(),
+	}
+}
+
+// baseResource implements the base functionality of the resource.
+//
+// Do NOT edit this type directly; use resource_hooks.go instead.
 type baseResource struct {
 	Vellum *vellumclient.Client
 }

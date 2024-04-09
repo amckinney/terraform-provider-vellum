@@ -10,21 +10,50 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	vellumdatasource "github.com/vellum-ai/terraform-provider-vellum/internal/terraform/datasource"
-	vellumresource "github.com/vellum-ai/terraform-provider-vellum/internal/terraform/resource"
+	"github.com/vellum-ai/terraform-provider-vellum/internal/terraform/documentindex"
 	vellumclient "github.com/vellum-ai/terraform-provider-vellum/internal/vellum/client"
 	"github.com/vellum-ai/terraform-provider-vellum/internal/vellum/option"
 )
 
-// Ensure baseProvider satisfies the terraform provider interface(s).
-var _ provider.Provider = (*baseProvider)(nil)
-
-// ProviderModel describes the provider data model.
+// ProviderModel represents the vellum terraform provider model.
+// This is expressed in terraform with the following:
+//
+//	provider "vellum" {
+//	  api_key = "YOUR_API_KEY"
+//	}
 type ProviderModel struct {
 	ApiKey types.String `tfsdk:"api_key"`
 }
 
-// basebaseProvider defines the base provider implementation.
+// Provider represents the Vellum terraform provider. This type is extendable;
+// simply override any of the exported methods in the hooks.go file to customize
+// the provider.
+type Provider struct {
+	base *baseProvider
+
+	// version is set to the provider version on release, "dev" when the
+	// provider is built and ran locally, and "test" when running acceptance
+	// testing.
+	version string
+}
+
+// Compile-time assertion that ensures the provider satisfies the provider.Provider
+// interface.
+var _ provider.Provider = (*Provider)(nil)
+
+// NewProvider returns a new Vellum terraform provider.
+func NewProvider(version string) func() provider.Provider {
+	return func() provider.Provider {
+		return &Provider{
+			base:    newBaseProvider(version),
+			version: version,
+		}
+	}
+}
+
+// baseProvider implements the base functionality of the provider.
+//
+// Do NOT edit this type directly; use hooks.go instead.
 type baseProvider struct {
 	// version is set to the provider version on release, "dev" when the
 	// provider is built and ran locally, and "test" when running acceptance
@@ -32,7 +61,8 @@ type baseProvider struct {
 	version string
 }
 
-// newBaseProvider returns a new vellum terraform provider.
+var _ provider.Provider = (*baseProvider)(nil)
+
 func newBaseProvider(version string) *baseProvider {
 	return &baseProvider{
 		version: version,
@@ -88,12 +118,12 @@ func (b *baseProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 
 func (b *baseProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		vellumresource.NewDocumentIndex,
+		documentindex.NewResource,
 	}
 }
 
 func (b *baseProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		vellumdatasource.NewDocumentIndex,
+		documentindex.NewDataSource,
 	}
 }
