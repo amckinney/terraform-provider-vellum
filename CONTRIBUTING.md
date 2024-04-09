@@ -1,9 +1,5 @@
 # Terraform Provider
 
-- Other names for `base`?
-- Add package documentation.
-- Move everything into separate packages (e.g. )
-
 ## Package Structure
 
 The generated SDK is deposited in the `internal/vellum` package, whereas the Terraform-specific code is
